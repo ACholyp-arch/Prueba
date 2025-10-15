@@ -8,7 +8,7 @@ const CANON_NAMES = [
   "Martin Leonardo Rivera Grajeda","José Mariano Rodríguez Rios","Ximena Santizo Murúa","Isabel Siliézar Rodas","Jeanne Marie Wheelock"
 ];
 
-// Ejemplos inventados para elogios correctos e incorrectos
+// Ejemplos inventados de cumplidos correctos e incorrectos
 const TASKS = {
   "Decir elogio": [
     {ejemplo:"Me gusta cómo te esforzaste en la presentación, se nota tu dedicación.", respuesta:"Correcto"},
@@ -16,77 +16,149 @@ const TASKS = {
     {ejemplo:"Admiro tu persistencia al completar la tarea a pesar de las dificultades.", respuesta:"Correcto"},
     {ejemplo:"Wow, para ser tú, estuvo bien.", respuesta:"Incorrecto"},
     {ejemplo:"Al menos tú sí hiciste algo decente.", respuesta:"Incorrecto"},
-    {ejemplo:"Eres increíble, aunque no entendí nada de lo que hiciste.", respuesta:"Incorrecto"}
-    {ejemplo:"Me gusta tus zapatos, ¿Dónde los compraste?", respuesta:"Correcto"}
-    {ejemplo:"Al menos hiciste algo bien este año", respuesta:"Incorrecto"}
+    {ejemplo:"Eres increíble, aunque no entendí nada de lo que hiciste.", respuesta:"Incorrecto"},
+    {ejemplo:"Me gusta tus zapatos, ¿Dónde los compraste?", respuesta:"Correcto"}, 
+    {ejemplo:"Al menos hiciste algo bien este año", respuesta:"Incorrecto"},
   ],
   "Adivinar el cumplido": [
-    {opciones:["Está bien","No está bien"], instrucciones:"Elige si el cumplido es apropiado y explica el ¿por qué?."}
+    {opciones:["Está bien","No está bien"], instrucciones:"Elige si el cumplido es apropiado y escribe por qué."}
   ]
 };
 
-// Helpers
-function normalizar(s){return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();}
-const normalizedMap = CANON_NAMES.reduce((acc,name)=>{acc[normalizar(name)]=name;return acc;},{});
+// Función para normalizar nombres (sin tildes ni mayúsculas)
+function normalizar(s){
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+}
 
-function xfnv1a(str){for(var i=0,h=2166136261>>>0;i<str.length;i++) h=Math.imul(h^str.charCodeAt(i),16777619);return function(){h+=h<<13;h^=h>>>7;h+=h<<3;h^=h>>>17;return(h>>>0);};}
-function mulberry32(a){return function(){var t=a+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;}}
+// Mapa para buscar nombres normalizados
+const normalizedMap = CANON_NAMES.reduce((acc,name)=>{
+  acc[normalizar(name)] = name;
+  return acc;
+},{});
 
+// Función para generar semilla reproducible
+function xfnv1a(str){
+  for(var i=0,h=2166136261>>>0;i<str.length;i++) 
+    h=Math.imul(h^str.charCodeAt(i),16777619);
+  return function(){
+    h+=h<<13; h^=h>>>7; h+=h<<3; h^=h>>>17;
+    return (h>>>0);
+  };
+}
+
+function mulberry32(a){
+  return function(){
+    var t=a+=0x6D2B79F5;
+    t=Math.imul(t^(t>>>15),t|1);
+    t^=t+Math.imul(t^t>>>7,t|61);
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+// Función para mezclar array con seed
 function seededShuffle(array,seed){
-  const a = array.slice(); const hfn=xfnv1a(seed); const seedNum=hfn(); const rand=mulberry32(seedNum);
-  for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  const a = array.slice();
+  const hfn = xfnv1a(seed);
+  const seedNum = hfn();
+  const rand = mulberry32(seedNum);
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(rand()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
   return a;
 }
 
+// Generar parejas/tríos
 function generatePairs(seed){
-  const order=seededShuffle(CANON_NAMES,seed);
-  const pairs=[];for(let i=0;i<order.length;i+=2){if(i+1<order.length)pairs.push([order[i],order[i+1]]);else pairs.push([order[i]]);}
-  if(pairs.length>=2 && pairs[pairs.length-1].length===1){const last=pairs.pop()[0];const prev=pairs.pop();pairs.push([prev[0],prev[1],last]);}
+  const order = seededShuffle(CANON_NAMES, seed);
+  const pairs = [];
+  for(let i=0;i<order.length;i+=2){
+    if(i+1<order.length) pairs.push([order[i], order[i+1]]);
+    else pairs.push([order[i]]);
+  }
+  // Si queda una sola persona en el último par, se hace trío
+  if(pairs.length>=2 && pairs[pairs.length-1].length===1){
+    const last = pairs.pop()[0];
+    const prev = pairs.pop();
+    pairs.push([prev[0], prev[1], last]);
+  }
   return pairs;
 }
 
-function getRole(name,pairs){
-  for(const pair of pairs){if(pair.includes(name)){return pair;}
-  }return null;
+// Obtener el par o trío del usuario
+function getPair(name,pairs){
+  for(const pair of pairs){
+    if(pair.includes(name)) return pair;
+  }
+  return null;
 }
 
-document.getElementById("revealBtn").addEventListener("click",()=>{
-  const nameInput=document.getElementById("nameInput").value;
-  const seedInput=document.getElementById("seedInput").value||"default2025";
-  const normName=normalizar(nameInput);
-  const realName=normalizedMap[normName];
-  if(!realName){alert("Nombre no encontrado.");return;}
-  const pairs=generatePairs(seedInput);
-  const myPair=getRole(realName,pairs);
-  const rolesShuffled=seededShuffle(["Decir elogio","Adivinar el cumplido"],realName+seedInput);
-  const myRole=rolesShuffled[0];
+// Generar roles aleatorios por usuario y seed
+function getRole(name,seed){
+  const rolesShuffled = seededShuffle(["Decir elogio","Adivinar el cumplido"], name+seed);
+  return rolesShuffled[0];
+}
 
-  const resultArea=document.getElementById("resultArea");
-  resultArea.innerHTML="";
+// Botón Generar seed
+document.getElementById("generateSeedBtn").addEventListener("click", ()=>{
+  const randomSeed = 'seed' + Math.floor(Math.random()*1000000) + Date.now();
+  document.getElementById("seedInput").value = randomSeed;
+});
 
-  const card=document.createElement("div");card.className="result-card";
-  const nameEl=document.createElement("div");nameEl.className="name";nameEl.textContent=realName;
-  const roleEl=document.createElement("div");roleEl.className="meta";roleEl.innerHTML=`Rol: <span class="role-badge">${myRole}</span>`;
-  card.appendChild(nameEl);card.appendChild(roleEl);
+// Botón Revelar papel
+document.getElementById("revealBtn").addEventListener("click", ()=>{
+  const nameInput = document.getElementById("nameInput").value;
+  const seedInput = document.getElementById("seedInput").value || "default2025";
+  const normName = normalizar(nameInput);
+  const realName = normalizedMap[normName];
 
-  if(myRole==="Decir elogio"){
-    const ejemplo=TASKS["Decir elogio"][Math.floor(Math.random()*TASKS["Decir elogio"].length)];
-    const caseEl=document.createElement("div");caseEl.className="case";
+  if(!realName){
+    alert("Nombre no encontrado. Revisa la ortografía y elimina tildes si es necesario.");
+    return;
+  }
+
+  const pairs = generatePairs(seedInput);
+  const myPair = getPair(realName,pairs);
+  const myRole = getRole(realName, seedInput);
+
+  const resultArea = document.getElementById("resultArea");
+  resultArea.innerHTML = "";
+
+  const card = document.createElement("div"); card.className = "result-card";
+  const nameEl = document.createElement("div"); nameEl.className="name"; nameEl.textContent=realName;
+  const roleEl = document.createElement("div"); roleEl.className="meta"; roleEl.innerHTML=`Rol: <span class="role-badge">${myRole}</span>`;
+  card.appendChild(nameEl); card.appendChild(roleEl);
+
+  if(myRole === "Decir elogio"){
+    const ejemplo = TASKS["Decir elogio"][Math.floor(Math.random()*TASKS["Decir elogio"].length)];
+    const caseEl = document.createElement("div"); caseEl.className="case";
     caseEl.innerHTML=`<b>Ejemplo de cumplido:</b> ${ejemplo.ejemplo}<br><b>Respuesta correcta:</b> ${ejemplo.respuesta}`;
     card.appendChild(caseEl);
-  }else{
-    const caseEl=document.createElement("div");caseEl.className="case";
+  } else {
+    const caseEl = document.createElement("div"); caseEl.className="case";
     caseEl.innerHTML=`<b>Instrucciones:</b> ${TASKS["Adivinar el cumplido"][0].instrucciones}<br>`;
-    const btnWell=document.createElement("button");btnWell.textContent="Está bien";btnWell.style.marginRight="6px";
-    const btnWrong=document.createElement("button");btnWrong.textContent="No está bien";
-    const feedback=document.createElement("div");feedback.style.marginTop="8px";feedback.style.color="var(--accent-2)";
-    btnWell.onclick=()=>{feedback.textContent="Tu respuesta fue registrada (verificación en vivo)."};
-    btnWrong.onclick=()=>{feedback.textContent="Tu respuesta fue registrada (verificación en vivo)."};
-    caseEl.appendChild(btnWell);caseEl.appendChild(btnWrong);caseEl.appendChild(feedback);
+    
+    const btnWell = document.createElement("button");
+    btnWell.textContent="Está bien"; btnWell.style.marginRight="6px";
+    const btnWrong = document.createElement("button");
+    btnWrong.textContent="No está bien";
+
+    const feedback = document.createElement("div"); feedback.style.marginTop="8px"; feedback.style.color="var(--accent-2)";
+
+    // Eventos de botones
+    btnWell.addEventListener("click", ()=>{ feedback.textContent="Tu respuesta fue registrada (verificación en vivo)."; });
+    btnWrong.addEventListener("click", ()=>{ feedback.textContent="Tu respuesta fue registrada (verificación en vivo)."; });
+
+    caseEl.appendChild(btnWell);
+    caseEl.appendChild(btnWrong);
+    caseEl.appendChild(feedback);
+
     card.appendChild(caseEl);
   }
 
-  const pairEl=document.createElement("div");pairEl.className="meta";pairEl.innerHTML=`Pareja / Trío: ${myPair.filter(n=>n!==realName).join(", ")}`;
+  const pairEl = document.createElement("div"); pairEl.className="meta";
+  pairEl.innerHTML = `Pareja / Trío: ${myPair.filter(n=>n!==realName).join(", ")}`;
   card.appendChild(pairEl);
+
   resultArea.appendChild(card);
 });
