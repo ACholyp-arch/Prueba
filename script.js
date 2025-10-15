@@ -34,7 +34,7 @@ function normalizar(s){
 const normalizedMap = CANON_NAMES.reduce((acc,name)=>{
   acc[normalizar(name)] = name;
   return acc;
-},{});
+},{});  
 
 // Función para generar semilla reproducible
 function xfnv1a(str){
@@ -95,8 +95,8 @@ function getPair(name,pairs){
 
 // Generar roles aleatorios por usuario y seed
 function getRole(name,seed){
-  const rolesShuffled = seededShuffle(["Decir elogio","Adivinar el cumplido"], name+seed);
-  return rolesShuffled[0];
+  const rand = mulberry32(xfnv1a(name + seed)());
+  return rand() < 0.5 ? "Decir elogio" : "Adivinar el cumplido";
 }
 
 // Botón Generar seed
