@@ -106,7 +106,7 @@ document.getElementById("generateSeedBtn").addEventListener("click", ()=>{
 });
 
 // Botón Revelar papel
-document.getElementById("revealBtn").addEventListener("click", ()=>{
+document.getElementById("revealBtn").addEventListener("click", ()=> {
   const nameInput = document.getElementById("nameInput").value;
   const seedInput = document.getElementById("seedInput").value || "default2025";
   const normName = normalizar(nameInput);
@@ -124,30 +124,54 @@ document.getElementById("revealBtn").addEventListener("click", ()=>{
   const resultArea = document.getElementById("resultArea");
   resultArea.innerHTML = "";
 
-  const card = document.createElement("div"); card.className = "result-card";
-  const nameEl = document.createElement("div"); nameEl.className="name"; nameEl.textContent=realName;
-  const roleEl = document.createElement("div"); roleEl.className="meta"; roleEl.innerHTML=`Rol: <span class="role-badge">${myRole}</span>`;
-  card.appendChild(nameEl); card.appendChild(roleEl);
+  const card = document.createElement("div"); 
+  card.className = "result-card";
+
+  const nameEl = document.createElement("div"); 
+  nameEl.className="name"; 
+  nameEl.textContent=realName;
+
+  const roleEl = document.createElement("div"); 
+  roleEl.className="meta"; 
+  roleEl.innerHTML=`Rol: <span class="role-badge">${myRole}</span>`;
+
+  card.appendChild(nameEl); 
+  card.appendChild(roleEl);
+
+  // Seleccionar ejemplo aleatorio
+  const ejemplo = TASKS["Decir elogio"][Math.floor(Math.random()*TASKS["Decir elogio"].length)];
 
   if(myRole === "Decir elogio"){
-    const ejemplo = TASKS["Decir elogio"][Math.floor(Math.random()*TASKS["Decir elogio"].length)];
-    const caseEl = document.createElement("div"); caseEl.className="case";
+    // Solo mostrar ejemplo y respuesta
+    const caseEl = document.createElement("div"); 
+    caseEl.className="case";
     caseEl.innerHTML=`<b>Ejemplo de cumplido:</b> ${ejemplo.ejemplo}<br><b>Respuesta correcta:</b> ${ejemplo.respuesta}`;
     card.appendChild(caseEl);
-  } else {
-    const caseEl = document.createElement("div"); caseEl.className="case";
-    caseEl.innerHTML=`<b>Instrucciones:</b> ${TASKS["Adivinar el cumplido"][0].instrucciones}<br>`;
-    
+  } else if(myRole === "Adivinar el cumplido") {
+    // Mostrar el ejemplo pero no la respuesta, dar opción de adivinar
+    const caseEl = document.createElement("div"); 
+    caseEl.className="case";
+    caseEl.innerHTML = `<b>Ejemplo de cumplido:</b> ${ejemplo.ejemplo}<br><b>¿Está bien o no está bien?</b><br>`;
+
     const btnWell = document.createElement("button");
-    btnWell.textContent="Está bien"; btnWell.style.marginRight="6px";
+    btnWell.textContent = "Está bien"; 
+    btnWell.style.marginRight = "6px";
+
     const btnWrong = document.createElement("button");
-    btnWrong.textContent="No está bien";
+    btnWrong.textContent = "No está bien";
 
-    const feedback = document.createElement("div"); feedback.style.marginTop="8px"; feedback.style.color="var(--accent-2)";
+    const feedback = document.createElement("div"); 
+    feedback.style.marginTop = "8px"; 
+    feedback.style.color = "var(--accent-2)";
 
-    // Eventos de botones
-    btnWell.addEventListener("click", ()=>{ feedback.textContent="Tu respuesta fue registrada (verificación en vivo)."; });
-    btnWrong.addEventListener("click", ()=>{ feedback.textContent="Tu respuesta fue registrada (verificación en vivo)."; });
+    // Solo aquí se verifica la respuesta
+    btnWell.addEventListener("click", ()=> {
+      feedback.textContent = ejemplo.respuesta === "Correcto" ? "¡Correcto! ✅" : "Incorrecto ❌";
+    });
+
+    btnWrong.addEventListener("click", ()=> {
+      feedback.textContent = ejemplo.respuesta === "Incorrecto" ? "¡Correcto! ✅" : "Incorrecto ❌";
+    });
 
     caseEl.appendChild(btnWell);
     caseEl.appendChild(btnWrong);
@@ -156,7 +180,8 @@ document.getElementById("revealBtn").addEventListener("click", ()=>{
     card.appendChild(caseEl);
   }
 
-  const pairEl = document.createElement("div"); pairEl.className="meta";
+  const pairEl = document.createElement("div"); 
+  pairEl.className="meta";
   pairEl.innerHTML = `Pareja / Trío: ${myPair.filter(n=>n!==realName).join(", ")}`;
   card.appendChild(pairEl);
 
